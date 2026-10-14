@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+}
+
+def vc = (project.findProperty('versionCode') ?: '1').toString().toInteger()
+def ks = new Properties()
+ks.load(new FileInputStream(rootProject.file('keystore/keystore.properties')))
+
+android {
+    namespace 'com.befrisbee.mazeeditor'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.befrisbee.mazeeditor'
+        minSdk 26
+        targetSdk 34
+        versionCode vc
+        versionName "1.0.${vc}"
+        // 앱(APK) 쪽 기능 단계. 올리면 '앱을 새로 설치하는 업데이트'가 됨
+        resValue "integer", "native_level", file('native-level').text.trim()
+    }
+
+    buildFeatures {
+        resValues true
+    }
+
+    signingConfigs {
+        release {
+            storeFile file(ks['storeFile'])
+            storePassword ks['storePassword']
+            keyAlias ks['keyAlias']
+            keyPassword ks['keyPassword']
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'androidx.core:core:1.13.1'
+}

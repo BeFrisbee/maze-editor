@@ -1,0 +1,56 @@
+name: APK 빌드
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: 업데이트 정보 만들기
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo "${{ github.repository }}" --pattern app-meta.json --dir prev || echo "이전 정보 없음"
+          python3 .github/make-meta.py ${{ github.run_number }}
+
+      - name: APK 만들기
+        run: gradle --no-daemon assembleRelease -PversionCode=${{ github.run_number }}
+
+      - name: 파일 이름 정리
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/release/app-release.apk out/maze-editor-1.0.${{ github.run_number }}.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: maze-editor-apk
+          path: out/*.apk
+
+      - name: 릴리스에 올리기
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: 미궁 제도실 1.0.${{ github.run_number }}
+          body_path: out/notes.txt
+          files: |
+            out/*.apk
+            out/editor.html
+            out/app-meta.json
+          make_latest: true
